@@ -24,6 +24,19 @@ resource "azurerm_subnet" "subnet-agw" {
   virtual_network_name = azurerm_virtual_network.vnet.name
   # agwデプロイに推奨されるサイズ
   address_prefixes     = ["172.16.1.0/24"]
+
+  # 無かったらError: ApplicationGatewayNetworkIsolationRequiresSubnetDelegation
+  # ドキュメントに記載なかった気がするけど、必要らしい
+  delegation {
+    name = "applicationGateways"
+
+    service_delegation {
+      name = "Microsoft.Network/applicationGateways"
+      actions = [
+        "Microsoft.Network/networkinterfaces/*"
+      ]
+    }
+  }
 }
 
 # pip
@@ -41,6 +54,11 @@ resource "azurerm_web_application_firewall_policy" "waf" {
   name                = "${var.base_name}-waf-policy"
   resource_group_name = azurerm_resource_group.rg.name
   location            = azurerm_resource_group.rg.location
+
+  # Error: Provider produced inconsistent result after applyのため
+  depends_on = [
+    azurerm_resource_group.rg
+  ]
 
   # ドキュメントからコピペ
   policy_settings {
@@ -74,10 +92,23 @@ resource "azurerm_application_gateway" "agw" {
   # wafの関連付け
   firewall_policy_id = azurerm_web_application_firewall_policy.waf.id
 
+  # Error: Provider produced inconsistent result after applyのため
+  depends_on = [
+    azurerm_subnet.subnet-agw,
+    azurerm_public_ip.pip,
+    azurerm_web_application_firewall_policy.waf
+  ]
+
   # wafと関連付け
   sku {
     name = "WAF_v2"
     tier = "WAF_v2"
+  }
+
+  # コピペ
+  autoscale_configuration {
+    min_capacity = 2
+    max_capacity = 10
   }
 
   # コピペ
@@ -111,6 +142,8 @@ resource "azurerm_application_gateway" "agw" {
     port                  = 80
     protocol              = "Http"
     request_timeout       = 20
+    # backend targetのホスト名のオーバーライドが必要
+    pick_host_name_from_backend_address = true
   }
 
   # コピペ
@@ -181,7 +214,7 @@ resource "azurerm_windows_web_app" "backend" {
 }
 
 #
-# ----------------- private endpoint -----------------
+# ----------------- private link -----------------
 #
 
 # subnet(pep)

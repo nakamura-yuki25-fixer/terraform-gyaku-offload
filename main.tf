@@ -42,7 +42,7 @@ resource "azurerm_web_application_firewall_policy" "waf" {
   resource_group_name = azurerm_resource_group.rg.name
   location            = azurerm_resource_group.rg.location
 
-  # コピペ
+  # ドキュメントからコピペ
   policy_settings {
     enabled                                   = true
     js_challenge_cookie_expiration_in_minutes = 5
@@ -169,7 +169,7 @@ resource "azurerm_windows_web_app" "backend" {
   # VNet統合
   virtual_network_subnet_id = azurerm_subnet.subnet-app.id
 
-  # 外部からのアクセスを拒否
+  # 外部からのアクセスを全て拒否
   site_config {
     ip_restriction {
       name     = "Deny-All"

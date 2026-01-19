@@ -142,7 +142,7 @@ resource "azurerm_subnet" "subnet-app" {
   resource_group_name  = azurerm_resource_group.rg.name
   virtual_network_name = azurerm_virtual_network.vnet.name
   address_prefixes     = ["172.16.2.0/26"]
-
+  # 委任
   delegation {
     name = "delegation"
     service_delegation {
@@ -151,6 +151,7 @@ resource "azurerm_subnet" "subnet-app" {
   }
 }
 
+# App Service Plan
 resource "azurerm_service_plan" "app-plan" {
   name                = "${var.base_name}-plan"
   location            = azurerm_resource_group.rg.location
@@ -159,13 +160,16 @@ resource "azurerm_service_plan" "app-plan" {
   sku_name            = "B1"
 }
 
+# App Service
 resource "azurerm_windows_web_app" "backend" {
   name                = "${var.base_name}-app"
   location            = azurerm_resource_group.rg.location
   resource_group_name = azurerm_resource_group.rg.name
   service_plan_id = azurerm_service_plan.app-plan.id
+  # VNet統合
   virtual_network_subnet_id = azurerm_subnet.subnet-app.id
 
+  # 外部からのアクセスを拒否
   site_config {
     ip_restriction {
       name     = "Deny-All"
@@ -173,9 +177,6 @@ resource "azurerm_windows_web_app" "backend" {
       action   = "Deny"
       ip_address = "0.0.0.0/0"
     }
-  }
-  app_settings = {
-    "WEBSITE_DNS_SERVER": "168.63.129.16",
   }
 }
 

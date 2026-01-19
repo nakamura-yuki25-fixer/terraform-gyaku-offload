@@ -29,11 +29,11 @@ resource "azurerm_subnet" "subnet-agw" {
   # ドキュメントに記載なかった気がするけど、必要らしい
   delegation {
     name = "applicationGateways"
-
     service_delegation {
       name = "Microsoft.Network/applicationGateways"
       actions = [
-        "Microsoft.Network/networkinterfaces/*"
+        "Microsoft.Network/virtualNetworks/subnets/join/action",
+        "Microsoft.Network/virtualNetworks/read"
       ]
     }
   }

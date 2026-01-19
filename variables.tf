@@ -11,6 +11,6 @@ variable "subscription_id" {
 
 variable "resource_group_location" {
   type        = string
-  default     = "West Europe"
+  default     = "Japan West"
   description = "Location of the resource group."
 }

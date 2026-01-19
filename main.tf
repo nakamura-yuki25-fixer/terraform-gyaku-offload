@@ -1,3 +1,7 @@
+locals {
+  app_private_fqdn = "${azurerm_windows_web_app.backend.name}.azurewebsites.net"
+}
+
 # resource group
 resource "azurerm_resource_group" "rg" {
   location = var.resource_group_location
@@ -48,7 +52,7 @@ resource "azurerm_web_application_firewall_policy" "waf" {
 
   # Configure the policy settings
   policy_settings {
-    enabled                                   = false
+    enabled                                   = true
     file_upload_limit_in_mb                   = 100
     js_challenge_cookie_expiration_in_minutes = 5
     max_request_body_size_in_kb               = 128
@@ -124,15 +128,15 @@ resource "azurerm_application_gateway" "agw" {
   # Define the backend address pool with IP addresses
   backend_address_pool {
     name         = "appgw-backend-pool"
-    fqdns = [azurerm_windows_web_app.backend.default_hostname]
+    fqdns = [local.app_private_fqdn]
   }
 
   # Configure backend HTTP settings
   backend_http_settings {
     name                  = "appgw-backend-http-settings"
     cookie_based_affinity = "Disabled"
-    port                  = 443
-    protocol              = "Https"
+    port                  = 80
+    protocol              = "Http"
     request_timeout       = 20
     pick_host_name_from_backend_address = true
   }
@@ -190,7 +194,21 @@ resource "azurerm_windows_web_app" "backend" {
   service_plan_id = azurerm_service_plan.app-plan.id
   virtual_network_subnet_id = azurerm_subnet.subnet-app.id
 
-  site_config {}
+  site_config {
+    ip_restriction {
+      name       = "Allow-AppGW-Subnet"
+      priority   = 100
+      action     = "Allow"
+      ip_address = azurerm_subnet.subnet-agw.address_prefixes[0]
+    }
+
+    ip_restriction {
+      name     = "Deny-All"
+      priority = 65500
+      action   = "Deny"
+      ip_address = "0.0.0.0/0"
+    }
+  }
   app_settings = {
     "WEBSITE_DNS_SERVER": "168.63.129.16",
   }

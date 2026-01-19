@@ -189,15 +189,18 @@ resource "azurerm_subnet" "subnet-pep" {
   name                 = "pep"
   resource_group_name  = azurerm_resource_group.rg.name
   virtual_network_name = azurerm_virtual_network.vnet.name
-  address_prefixes     = ["172.16.2.64/26"]
+  address_prefixes     = ["172.16.2.64/29"]
+  # UDRやNSGを使用しない
   private_endpoint_network_policies = "Disabled"
 }
 
+# private dns zone
 resource "azurerm_private_dns_zone" "dnsprivatezone" {
   name                = "privatelink.azurewebsites.net"
   resource_group_name = azurerm_resource_group.rg.name
 }
 
+# private link
 resource "azurerm_private_dns_zone_virtual_network_link" "dnszonelink" {
   name = "dnszonelink"
   resource_group_name = azurerm_resource_group.rg.name
@@ -205,6 +208,7 @@ resource "azurerm_private_dns_zone_virtual_network_link" "dnszonelink" {
   virtual_network_id = azurerm_virtual_network.vnet.id
 }
 
+# pep
 resource "azurerm_private_endpoint" "pep" {
   name                = "${var.base_name}-pep"
   location            = azurerm_resource_group.rg.location
@@ -218,6 +222,7 @@ resource "azurerm_private_endpoint" "pep" {
 
   private_service_connection {
     name = "privateendpointconnection"
+    # 接続先
     private_connection_resource_id = azurerm_windows_web_app.backend.id
     subresource_names = ["sites"]
     is_manual_connection = false
